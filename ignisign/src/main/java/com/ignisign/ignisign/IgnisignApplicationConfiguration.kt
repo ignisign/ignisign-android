@@ -28,7 +28,7 @@ data class IgnisignWebhookSettingsDescription(
 data class IgnisignApplicationSettings(
     val appId: String,
     val orgId: String,
-    val defaultLanguage: IgnisignSignatureLanguages? = null, // Remplacer par l'énumération appropriée
+    val defaultLanguage: IgnisignSignatureLanguages? = null,
     val customerSupportEmail: String? = null,
     val logoB64: String? = null,
     val logoDarkB64: String? = null,

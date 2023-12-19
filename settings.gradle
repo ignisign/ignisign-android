@@ -12,6 +12,6 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "ExampleIgnisign"
+rootProject.name = "IgnisignAndroid"
 include ':app'
 include ':ignisign'

@@ -1,14 +1,16 @@
 package com.ignisign.example
 
+import android.content.Context
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import androidx.fragment.app.Fragment
 import com.ignisign.ignisign.*
 
-class SignAContractFragment : Fragment(), ISessionCallbacks {
-
+class SignContractFragment : Fragment(), ISessionCallbacks {
     lateinit var ignisignAndroid: IgnisignAndroid
 
     override fun onCreateView(
@@ -20,21 +22,15 @@ class SignAContractFragment : Fragment(), ISessionCallbacks {
 
         ignisignAndroid = view.findViewById(R.id.embedded_signature)
 
-        val signatureRequestId = "658018d06770b7001ca416a8"
-        val signatureSessionToken = "0OhJTGA9SEq8W1ZcNtE5JwJEZ62q3EZZ9qssFcBBBTWu6FdBjk7nlEgqtZRncqwCt7"
-        val signerId = "65801468851baa001bb252f5"
-        val authSecret = "fd2b2d0c-1cc6-4dd8-8c99-6b6551e84fdd"
-        //test values
+        val signatureRequestId = "65819f7a6770b7001ca423bc"//"6580180bf9b5c7001c3b641a"//"658050446770b7001ca41a28"//"658018d06770b7001ca416a8"
+        val signatureSessionToken = "MLyxdUIBBROmckS4bQBB4qftW5qmkzIUyokLRJQKlGmnGMZofV0GdCE68pAhhanJ2s"//"DIuq6Z7hR0yAAeC6BB8TA1h1oL6PA0EVZZtYWEFRR7ph9tyWxvvjBLh53VloDiE2Fs"//"BBCLy1wbZTpCZZgVRzBBZpQOs9Ho5Z9A0eBjO1toOBzELMJb2eP83ZCRbXcRKTVROhd"//"0OhJTGA9SEq8W1ZcNtE5JwJEZ62q3EZZ9qssFcBBBTWu6FdBjk7nlEgqtZRncqwCt7"
 
-        /*embeddedSignature.initSignature(
-            signatureRequestId = signatureRequestId,
-            signatureSessionToken = signatureSessionToken,
-            signerId = signerId,
-            signatureAuthSecret = authSecret
-        )*/
+        val signerId = "65801468851baa001bb252f5"//"6580147792c43e001c0eabbf"
+        val authSecret = "fd2b2d0c-1cc6-4dd8-8c99-6b6551e84fdd"//"36cbb059-f660-4c14-876a-7019aab3cab0"
+
         val dimensions = IgnisignSignatureSessionDimensions(
-            width = "300",
-            height = "400"
+            width = "${getScreenWidthDp(requireContext())-20}",
+            height = "${getScreenHeightDp(requireContext())-80}"
         )
 
         val displayOptions = IgnisignJSSignatureSessionsDisplayOptions(
@@ -42,10 +38,11 @@ class SignAContractFragment : Fragment(), ISessionCallbacks {
             showDescription = true,
             darkMode = false,
             forceLanguage = IgnisignSignatureLanguages.FR,
-            forceShowDocumentInformations = true
+            forceShowDocumentInformations = false
         )
 
         val params = IgnisignInitParams(
+            idFrame = "test-ignisign-sdk",
             signatureRequestId = signatureRequestId,
             signerId = signerId,
             signatureSessionToken = signatureSessionToken,
@@ -56,6 +53,7 @@ class SignAContractFragment : Fragment(), ISessionCallbacks {
             closeOnFinish = true
         )
 
+        ignisignAndroid.setValues("com.ignisign.example", IgnisignApplicationEnv.DEVELOPMENT)
         ignisignAndroid.initSignatureSession(params)
 
         return view
@@ -86,4 +84,17 @@ class SignAContractFragment : Fragment(), ISessionCallbacks {
     ) /*: Deferred<Void>*/ {
 
     }
+
+    fun getScreenWidthDp(context: Context): Int {
+        val displayMetrics = DisplayMetrics()
+        (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay.getMetrics(displayMetrics)
+        return (displayMetrics.widthPixels / displayMetrics.density).toInt()
+    }
+
+    fun getScreenHeightDp(context: Context): Int {
+        val displayMetrics = DisplayMetrics()
+        (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay.getMetrics(displayMetrics)
+        return (displayMetrics.heightPixels / displayMetrics.density).toInt()
+    }
+
 }

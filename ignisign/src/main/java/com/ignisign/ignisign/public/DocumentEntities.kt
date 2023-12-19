@@ -50,8 +50,8 @@ data class IgnisignDocumentContainer(
 
 data class IgnisignDocumentContext(
     val ignisignDocument: IgnisignDocument,
-    val statements: List<IgnisignSignatureRequestStatement>? = null, // Type à définir
-    val documentRequest: IgnisignDocumentRequest? = null, // Type à définir
+    val statements: List<IgnisignSignatureRequestStatement>? = null,
+    val documentRequest: IgnisignDocumentRequest? = null,
     val signatureSummaries: List<SignatureSummary>
 ) {
     data class SignatureSummary(

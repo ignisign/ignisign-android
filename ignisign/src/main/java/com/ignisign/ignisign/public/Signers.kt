@@ -30,7 +30,7 @@ enum class IgnisignSignerCreationInputRef {
 data class IgnisignSigner(
     val _id: String? = null,
     val appId: String,
-    val appEnv: IgnisignApplicationEnv, // Assurez-vous que cette énumération est définie
+    val appEnv: IgnisignApplicationEnv,
     val status: IgnisignSignerStatus,
     val entityType: IgnisignSignerEntityType,
     val _createdAt: Date? = null,
@@ -94,6 +94,6 @@ data class IgnisignSignerContext(
 ) : IgnisignSignerSummary() {
     data class Claim(
         val claimRef: IgnisignSignerClaimRef,
-        val status: IgnisignSignerClaimStatus // Type à définir
+        val status: IgnisignSignerClaimStatus
     )
 }

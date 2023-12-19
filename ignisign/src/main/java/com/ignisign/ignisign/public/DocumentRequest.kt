@@ -20,7 +20,7 @@ enum class IgnisignDocumentRequestStatus {
 data class IgnisignDocumentRequest(
     val _id: String? = null,
     val appId: String,
-    val appEnv: IgnisignApplicationEnv, // Assurez-vous que cette énumération est définie
+    val appEnv: IgnisignApplicationEnv,
     val target: IgnisignDocumentRequestTarget,
     val status: IgnisignDocumentRequestStatus,
     val signatureRequestId: String,

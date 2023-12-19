@@ -25,8 +25,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         navigationView.setNavigationItemSelectedListener(this)
 
         if (savedInstanceState == null) {
-            //replaceFragment(ListContractFragment())
-            replaceFragment(SignAContractFragment())
+            replaceFragment(SignContractFragment())
         }
     }
 
@@ -36,7 +35,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
             }
             R.id.nav_second -> {
-                replaceFragment(SignAContractFragment())
+                replaceFragment(SignContractFragment())
             }
             R.id.nav_third -> {
                 replaceFragment(ListContractFragment())

@@ -44,14 +44,14 @@ open class IgnisignSignatureRequest(
     val _id: String? = null,
     val _createdAt: Date? = null,
     val appId: String,
-    val appEnv: IgnisignApplicationEnv, // Assurez-vous que cette énumération est définie
+    val appEnv: IgnisignApplicationEnv,
     val signatureProfileId: String,
     val title: String? = null,
     val description: String? = null,
     val expirationDate: Date? = null,
     val expirationDateIsActivated: Boolean? = null,
     val status: IgnisignSignatureRequestStatus,
-    val language: IgnisignSignatureLanguages? = null, // Assurez-vous que cette énumération est définie
+    val language: IgnisignSignatureLanguages? = null,
     val documentIds: List<String>? = null,
     val externalId: String? = null,
     val diffusionMode: IgnisignSignatureRequestDiffusionMode? = null,

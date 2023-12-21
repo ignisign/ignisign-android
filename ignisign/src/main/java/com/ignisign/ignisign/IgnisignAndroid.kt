@@ -1,10 +1,16 @@
 package com.ignisign.ignisign
 
-import android.content.ContentValues
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import android.content.Context
 import android.util.AttributeSet
 import android.util.Log
 import android.webkit.*
+import com.google.gson.JsonObject
+import com.ignisign.ignisign.public.IgnisignDocumentPrivateFileDto
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 data class IgnisignSignatureSessionDimensions (
     var width: String,
@@ -36,7 +42,6 @@ data class IgnisignJSSignatureSessionsDisplayOptions (
             .filter { it.value != null }
             .joinToString("&") { "${it.key}=${it.value}" }
     }
-
 }
 
 data class IgnisignInitParams (
@@ -51,7 +56,7 @@ data class IgnisignInitParams (
     var displayOptions: IgnisignJSSignatureSessionsDisplayOptions
 )
 
-class IgnisignAndroid: WebView {
+class IgnisignAndroid: WebView, IJSEventListener {
     private val TAG: String = "IgnisignAndroid"
     private val IGNISIGN_CLIENT_SIGN_URL = "https://sign.ignisign.io"
 
@@ -69,6 +74,9 @@ class IgnisignAndroid: WebView {
     lateinit var dimensions: IgnisignSignatureSessionDimensions
     lateinit var displayOptions: IgnisignJSSignatureSessionsDisplayOptions
 
+    private val IFRAME_MIN_WIDTH  = 200;
+    private val IFRAME_MIN_HEIGHT = 400;
+
     constructor(context: Context) : super(context) {}
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {}
     constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(context, attrs, defStyleAttr) {}
@@ -85,18 +93,7 @@ class IgnisignAndroid: WebView {
 
     fun initSignatureSession(initParams: IgnisignInitParams) {
         settings.javaScriptEnabled = true
-        settings.useWideViewPort = true
-        settings.allowFileAccess = true
-        settings.pluginState = WebSettings.PluginState.ON
-        settings.javaScriptCanOpenWindowsAutomatically = true
-        settings.setSupportMultipleWindows(true)
-        //settings.loadWithOverviewMode = true
-        /*settings.domStorageEnabled = true
-        settings.allowFileAccess = true
-        settings.javaScriptCanOpenWindowsAutomatically = true
-        settings.allowContentAccess = true
-        settings.allowUniversalAccessFromFileURLs = true
-        settings.setSupportMultipleWindows(true)*/
+        settings.domStorageEnabled = true
 
         Log.d(TAG, "trace initSignatureSession : params: " + initParams.toString())
 
@@ -117,7 +114,7 @@ class IgnisignAndroid: WebView {
 
 
 
-        val myWebChromeClient = object : WebChromeClient() {
+        /*val myWebChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 // Gestion de la progression du chargement
                 super.onProgressChanged(view, newProgress)
@@ -133,9 +130,9 @@ class IgnisignAndroid: WebView {
 
 
             // Autres méthodes de surcharge au besoin
-        }
+        }*/
 
-        webChromeClient = myWebChromeClient
+        //webChromeClient = myWebChromeClient
 
         // Charger une URL ou des données HTML
         //myWebView.loadUrl("https://www.example.com")
@@ -145,43 +142,43 @@ class IgnisignAndroid: WebView {
                 view: WebView?,
                 request: WebResourceRequest?
             ): Boolean {
-
-                Log.d(TAG, "trace webview : shouldOverrideUrlLoading : " + request?.url?.path)
-
                 return super.shouldOverrideUrlLoading(view, request)
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
 
-                Log.d(TAG, "trace webview : onPageFinished : " + url)
-
-                loadUrl("javascript:(function() { " +
-                        "var iframe = document.getElementById('${idFrame}'); " +
-                        "iframe.contentWindow.addEventListener('message', function(event) { " +
-                        "    AndroidInterface.postMessage(event.data);" +
-                        "}, false);" +
+                loadUrl("javascript:(function() {" +
+                        "function receiveMessage(event) {\n" +
+                        "AndroidInterface.onMessageReceived(JSON.stringify(event.data));\n" +
+                        "}" +
+                        "window.addEventListener(\"message\", receiveMessage, false);"+
                         "})()")
+
+                /*val jsCode = """
+                    function getDocumentSize() {
+                        var width = document.documentElement.scrollWidth;
+                        var height = document.documentElement.scrollHeight;
+                        AndroidInterface.onDocumentSizeReceived(width, height);
+                    }
+                    getDocumentSize(); 
+                """
+
+                loadUrl("javascript:$jsCode")*/
+
+
+                //checkIfFrameIsTooSmall()
             }
         }
 
-        val iFrame = "<iframe style=\"margin: 0 auto; " +
-                "id=${idFrame} " +
-                "allow=\"publickey-credentials-create allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox allow-top-navigation " +
-                "src=\"${signatureSessionLink}\" " +
-                "title='Ignisign' " +
-                "width=${dimensions.width} " +
-                "height=${dimensions.height}" +
-                " />"
-
         Log.d(TAG, "trace webview - display iFrame with id : " + idFrame)
 
-        addJavascriptInterface(JavaScriptInterface(), "AndroidInterface")
-        loadDataWithBaseURL(Config.url, iFrame, "text/html", "UTF-8", null)
-        //loadData(iFrame, "text/html", null)
+        val jsInterface = JavaScriptInterface()
+        jsInterface.listener = this
+        addJavascriptInterface(jsInterface, "AndroidInterface")
+        loadUrl(signatureSessionLink)
 
         //todo gestion taille
-
     }
 
     public fun cancelSignatureSession() {
@@ -190,25 +187,154 @@ class IgnisignAndroid: WebView {
 
     /*** private ***/
 
-    private fun handleEvent() {
-
-    }
-
     private fun closeIFrame() {
-        loadUrl("")
-        destroy()
+        /*CoroutineScope(Dispatchers.Main).launch {
+            loadUrl("")
+            destroy()
+        }*/
     }
 
     private class JavaScriptInterface {
-        private val TAG: String = "JavascriptInterface"
+        private val TAG: String? = "JSInterface"
+        lateinit var listener: IJSEventListener
+        /*fun onDocumentSizeReceived(width: Int, height: Int) {
+            Log.d("WebView", "Taille du document: Largeur=$width, Hauteur=$height")
+        }*/
         @JavascriptInterface
-        fun postMessage(message: String) {
-            Log.d(TAG, "trace webview - listen iFrame : " + message)
+        fun onMessageReceived(message: String) {
+            if (listener != null) {
+                listener.handleEvent(message)
+            }
+        }
+
+        /*@JavascriptInterface
+        fun onIframeTooSmall(width: Int, height: Int) {
+            Log.d(TAG, "L'iframe est trop petit: Largeur=$width, Hauteur=$height")
+        }*/
+    }
+
+    override fun handleEvent(message: String) {
+        val args = jsonToMap(message)
+        Log.d(TAG, "trace webview : map args : " + args)
+
+        if (args.containsKey("type") && args.containsKey("data")) {
+            val type = args["type"]
+            val data = args["data"] as Map<String, Any>
+            if (type == IgnisignBroadcastableActions.NEED_PRIVATE_FILE_URL.name) {
+                Log.d(TAG, "trace webview - case private file url")
+                managePrivateFileInfoProvisioning(data)
+            }  else if (type == IgnisignBroadcastableActions.OPEN_URL.name) {
+                Log.d(TAG, "trace webview - case open url")
+                val url = data["url"] as? String
+                if (url != null) {
+                    loadUrl(url)
+                }
+            } else if(type == IgnisignBroadcastableActions.SIGNATURE_FINALIZED.name) {
+                Log.d(TAG, "trace webview - case finalized")
+                finalizeSignatureRequest(data)
+            } else if (type == IgnisignBroadcastableActions.SIGNATURE_ERROR.name) {
+                Log.d(TAG, "trace webview - case error")
+                manageSignatureRequestError(data)
+            }
+        } else if (args.containsKey("type") && (!args.containsKey("data") || (args.containsKey("data") && (args["data"] as? Map<String, Any>)?.entries?.isEmpty() == true))) {
+            sessionCallbacks.handleSignatureSessionError(
+                "IGNISIGN_JS_HANDLE_EVENT_ERROR",
+                args,
+                signerId,
+                signatureRequestId
+            )
         }
     }
 
+    private fun managePrivateFileInfoProvisioning(data: Map<String, Any>) {
+        val documentId = data["documentId"] as? String
+        val externalDocumentId = data["externalDocumentId"] as? String
+
+        if (documentId != null && externalDocumentId != null) {
+            sessionCallbacks.handlePrivateFileInfoProvisioning(
+                documentId,
+                externalDocumentId,
+                signerId,
+                signatureRequestId
+            )
+        }
+
+        if (closeOnFinish) {
+            closeIFrame()
+        }
+    }
+
+    private fun finalizeSignatureRequest(data: Map<String, Any>) {
+        val signatureIds = data["signatureIds"]?.let { convertAnyToStringList(it) }
+        if (signatureIds != null) {
+            sessionCallbacks.handleSignatureSessionFinalized(
+                signatureIds,
+                signerId,
+                signatureRequestId
+            )
+        }
+
+        if (closeOnFinish) {
+            closeIFrame()
+        }
+    }
+
+    private fun manageSignatureRequestError(data: Map<String, Any>) {
+        val errorCode = data["errorCode"] as? String
+        val errorContext = data["errorContext"] as? Any
+
+        if (errorCode != null && errorContext != null) {
+            sessionCallbacks.handleSignatureSessionError(
+                errorCode,
+                errorContext,
+                signerId,
+                signatureRequestId
+            )
+        }
+
+        if (closeOnFinish) {
+            closeIFrame()
+        }
+    }
+
+    private fun checkIfFrameIsTooSmall() { //todo
+        /*val jsCode = """
+            function checkIfIframeIsTooSmall() { 
+                if (document.offsetHeight < $IFRAME_MIN_HEIGHT || document.offsetWidth < $IFRAME_MIN_WIDTH) {
+                    AndroidInterface.onIframeTooSmall(docElement.offsetWidth, docElement.offsetHeight);
+                } else {
+                    AndroidInterface.onIframeTooSmall(docElement.offsetWidth, docElement.offsetHeight);
+                }
+            }
+            checkIfIframeIsTooSmall(); 
+        """
+        loadUrl("javascript:$jsCode")*/
+
+        val jsCode = """
+            function checkIfIframeIsTooSmall() { 
+                AndroidInterface.onIframeTooSmall(docElement.offsetWidth, docElement.offsetHeight);
+            }
+            checkIfIframeIsTooSmall(); 
+        """
+        loadUrl("javascript:$jsCode")
+    }
+
+    private fun convertAnyToStringList(value: Any): List<String>? {
+        return when (value) {
+            is Array<*> -> value.filterIsInstance<String>()
+            is List<*> -> value.filterIsInstance<String>()
+            is String -> listOf(value)
+            else -> null
+        }
+    }
 
     private fun getUrlSessionLink(signatureRequestId: String, signerId: String, signatureSessionToken: String, signerAuthSecret: String, displayOptions: IgnisignJSSignatureSessionsDisplayOptions): String {
         return "${this.ignisignClientSignUrl}/signature-requests/${signatureRequestId}/signers/${signerId}/sign?token=${signatureSessionToken}&signerSecret=${signerAuthSecret}&${displayOptions.convertToQueryString()}"
+    }
+
+    private fun jsonToMap(json: String): Map<String, Any> {
+        val gson = Gson()
+        val type = object : TypeToken<Map<String, Any>>() {}.type
+        return gson.fromJson(json, type)
     }
 }

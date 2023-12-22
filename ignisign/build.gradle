@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
+    id 'maven-publish'
 }
 
 android {
@@ -9,6 +10,9 @@ android {
 
     defaultConfig {
         //applicationId "com.ignisign.ignisign"
+        aarMetadata {
+            minCompileSdk = 29
+        }
         minSdk 21
         targetSdk 32
         versionCode 1
@@ -44,3 +48,15 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
+
+/*publishing {
+    publications(MavenPublication) {
+        groupdId = 'com.ignisign'
+        artifactId = 'ignisign'
+        version = '1.0'
+
+        afterEvaluate {
+            from components.release
+        }
+    }
+}*/

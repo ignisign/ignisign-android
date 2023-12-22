@@ -27,7 +27,6 @@ class ListContractFragment : Fragment() {
     var spinnerDisplayData: MutableList<String> = mutableListOf()
     private lateinit var adapter: ArrayAdapter<String>
 
-
     @SuppressLint("MissingInflatedId")
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,

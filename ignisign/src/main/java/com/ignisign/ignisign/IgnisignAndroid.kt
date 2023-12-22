@@ -112,31 +112,6 @@ class IgnisignAndroid: WebView, IJSEventListener {
 
         val signatureSessionLink = getUrlSessionLink(signatureRequestId, signerId, signatureSessionToken, signerAuthToken, displayOptions)
 
-
-
-        /*val myWebChromeClient = object : WebChromeClient() {
-            override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                // Gestion de la progression du chargement
-                super.onProgressChanged(view, newProgress)
-
-                loadUrl("javascript:(function() { " +
-                        "var iframe = document.getElementById('${idFrame}'); " +
-                        "iframe.contentWindow.addEventListener('message', function(event) { " +
-                        "    AndroidInterface.postMessage(event.data);" +
-                        "}, false);" +
-                        "})()")
-            }
-
-
-
-            // Autres méthodes de surcharge au besoin
-        }*/
-
-        //webChromeClient = myWebChromeClient
-
-        // Charger une URL ou des données HTML
-        //myWebView.loadUrl("https://www.example.com")
-
         webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(
                 view: WebView?,
@@ -221,7 +196,7 @@ class IgnisignAndroid: WebView, IJSEventListener {
             val type = args["type"]
             val data = args["data"] as Map<String, Any>
             if (type == IgnisignBroadcastableActions.NEED_PRIVATE_FILE_URL.name) {
-                Log.d(TAG, "trace webview - case private file url")
+                Log.d(TAG, "trace webview - case private file url") //todo
                 managePrivateFileInfoProvisioning(data)
             }  else if (type == IgnisignBroadcastableActions.OPEN_URL.name) {
                 Log.d(TAG, "trace webview - case open url")
@@ -246,7 +221,7 @@ class IgnisignAndroid: WebView, IJSEventListener {
         }
     }
 
-    private fun managePrivateFileInfoProvisioning(data: Map<String, Any>) {
+    private fun managePrivateFileInfoProvisioning(data: Map<String, Any>) { //Ignisign Broadcastble Action
         val documentId = data["documentId"] as? String
         val externalDocumentId = data["externalDocumentId"] as? String
 

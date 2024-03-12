@@ -1,23 +1,24 @@
 # ignisign-android
 
-Classe principale dans le module ignisign: ignisign/java/com/ignisign
-Pour instancier une webview ignisign:
-	1. Ajouter dans le layout de l'activité ou du fragment concerné une vue IgnisignAndroid
-	2. Définir une instance de IgnisignSignatureSessionDimensions
-	3. Définir une instance de IgnisignJSSignatureSessionsDisplayOptions
-	4. Définir une instance de IgnisignInitParams
-	5. Appeler setValues
-	6. Appeler initSignatureSession
-	7. L'activité ou le fragment appelant doit implémenter ISessionCallbacks pour recevoir les events.
 
-Récupération des contrats:
-	- Classe IgnisignAPI, qui contient l'interface Retrofit pour définir la route et le service IgnisignAPIService qui fetch les contrats.
-	
+Main class in the ignisign module: `ignisign/java/com/ignisign` 
 
-Il reste encore l'ancienne structure avec le navigation drawer et les fragments pour récupérer les sellers et customers, pour les enlever il faut simplement supprimer les fichiers kt et xml associés, ils ne sont plus utilisés.
+To instantiate an ignisign webview: 
 
-Si le besoin se présente d'ajouter des vues (activités) dans le projet de test, il faut les déclarer dans AndroidManifest.XML, sinon ça ne fonctionnera pas.
+1. Add an IgnisignAndroid view in the layout of the activity or fragment concerned
+2. Define an instance of IgnisignSignatureSessionDimensions
+3. Define an instance of IgnisignJSSignatureSessionsDisplayOptions
+4. Define an instance of IgnisignInitParams
+5. Call setValues
+6. Call initSignatureSession
+7. The calling activity or fragment must implement ISessionCallbacks to receive events.
 
-Pour tester la récupération des contrats via simulateur, l'équivalent du localhost est 10.0.0.2.
+Retrieving contracts: - IgnisignAPI class, which contains the Retrofit interface to define the route and the IgnisignAPIService that fetches the contracts.
 
+The old structure with the navigation drawer and fragments to retrieve sellers and customers is still present. 
+To remove them, simply delete the associated kt and xml files; they are no longer used.
+
+If there is a need to add views (activities) to the test project, they must be declared in AndroidManifest.XML, otherwise, it will not work.
+
+To test contract retrieval via simulator, the equivalent of localhost is 10.0.0.2.
 

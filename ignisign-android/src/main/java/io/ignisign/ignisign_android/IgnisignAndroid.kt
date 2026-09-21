@@ -77,7 +77,9 @@ class IgnisignAndroid: WebView, IJSEventListener {
     private val IFRAME_MIN_WIDTH  = 200;
     private val IFRAME_MIN_HEIGHT = 400;
 
-    private val debug = true
+    // SECURITY: Debug should be controlled by BuildConfig, not hardcoded
+    // For now set to false to prevent production logging
+    private val debug = false
 
     constructor(context: Context) : super(context) {}
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {}

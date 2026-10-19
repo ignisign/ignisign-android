@@ -24,11 +24,13 @@ class SignContractFragment : Fragment(), ISessionCallbacks {
 
         ignisignAndroid = view.findViewById(R.id.embedded_signature)
 
-        val signatureRequestId = "65854b1d5c7395001c9a5a39"
-        val signatureSessionToken = "pRC0l2S5SW2VsdWu1xAHr5SY4Q2FpEbYrMEQpbObWUU0jPFSEPxI0bsiCeZWpYv"
+        // SECURITY: Never hardcode credentials in production code.
+        // These should be fetched securely from your backend API.
+        val signatureRequestId = "YOUR_SIGNATURE_REQUEST_ID"
+        val signatureSessionToken = "YOUR_SESSION_TOKEN"
 
-        val signerId = "6582fc68ef3841001b92e413"
-        val authSecret = "ffbdae8b-8ead-4fed-a601-d4ea62dcda50"
+        val signerId = "YOUR_SIGNER_ID"
+        val authSecret = "YOUR_AUTH_SECRET"
 
         val dimensions = IgnisignSignatureSessionDimensions(
             width = "${getScreenWidthDp(requireContext())-20}",

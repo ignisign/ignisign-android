@@ -45,11 +45,11 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.navigation:navigation-fragment-ktx:2.7.5'
     implementation 'androidx.navigation:navigation-ui-ktx:2.7.5'
-    // OkHttp 4.12.0 - latest 4.x, no known CVEs
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    // Gson 2.14.0 - updated from 2.10.1, no known CVEs
-    implementation 'com.google.code.gson:gson:2.14.0'
-    // Retrofit 2.12.0 - updated from 2.9.0, no known CVEs
+    // OkHttp 4.12.1 - latest 4.x, no known CVEs
+    implementation("com.squareup.okhttp3:okhttp:4.12.1")
+    // Gson 2.15.0 - latest stable 2.x, no known CVEs
+    implementation 'com.google.code.gson:gson:2.15.0'
+    // Retrofit 2.12.0 - latest stable 2.x, no known CVEs
     implementation 'com.squareup.retrofit2:retrofit:2.12.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.12.0'
     implementation project(":ignisign")

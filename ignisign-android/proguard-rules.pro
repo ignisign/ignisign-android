@@ -5,17 +5,26 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# SECURITY: WebView JavaScript Interface Protection
+# Keep the JavaScript interface methods accessible from WebView
+-keepclassmembers class io.ignisign.ignisign_android.IgnisignAndroid$JavaScriptInterface {
+   public *;
+   @android.webkit.JavascriptInterface <methods>;
+}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Keep callback interfaces used by the SDK
+-keep interface io.ignisign.ignisign_android.ISessionCallbacks { *; }
+-keep interface io.ignisign.ignisign_android.IJSEventListener { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Preserve line numbers for debugging stack traces (security incident analysis)
+-keepattributes SourceFile,LineNumberTable
+
+# Hide the original source file name in production
+-renamesourcefileattribute SourceFile
+
+# SECURITY: Strip out logging in release builds
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+}

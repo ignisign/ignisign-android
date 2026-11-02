@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- SECURITY: Default to HTTPS only. Cleartext traffic is disabled by default. -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- Only allow cleartext for localhost/emulator during development if absolutely needed -->
+    <!-- Remove this domain-config in production builds -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <!-- ngrok domain for development - REMOVE in production -->
+        <domain includeSubdomains="true">ngrok-free.app</domain>
+    </domain-config>
+</network-security-config>

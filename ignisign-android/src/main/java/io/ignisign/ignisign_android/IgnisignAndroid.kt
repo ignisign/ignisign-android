@@ -77,7 +77,9 @@ class IgnisignAndroid: WebView, IJSEventListener {
     private val IFRAME_MIN_WIDTH  = 200;
     private val IFRAME_MIN_HEIGHT = 400;
 
-    private val debug = true
+    // SECURITY: Debug should be controlled by BuildConfig, not hardcoded
+    // For now set to false to prevent production logging
+    private val debug = false
 
     constructor(context: Context) : super(context) {}
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {}
@@ -100,10 +102,20 @@ class IgnisignAndroid: WebView, IJSEventListener {
     }
 
     fun initSignatureSession(initParams: IgnisignInitParams) {
+        // SECURITY: Configure WebView with security best practices
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
-
-        debugPrint("trace initSignatureSession : params: " + initParams.toString())
+        settings.allowFileAccess = false
+        settings.allowContentAccess = false
+        settings.setGeolocationEnabled(false)
+        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+        
+        // Redact sensitive params from logs
+        val safeParams = initParams.copy(
+            signatureSessionToken = "[REDACTED]",
+            signerAuthSecret = "[REDACTED]"
+        )
+        debugPrint("trace initSignatureSession : params: " + safeParams.toString())
 
         this.idFrame = initParams.idFrame
         this.signerId = initParams.signerId
@@ -120,13 +132,22 @@ class IgnisignAndroid: WebView, IJSEventListener {
 
         val signatureSessionLink = getUrlSessionLink(signatureRequestId, signerId, signatureSessionToken, signerAuthToken, displayOptions)
 
-        debugPrint("trace session link : " + signatureSessionLink)
+        // SECURITY: Redact sensitive parameters from logs
+        val safeLink = signatureSessionLink.replace(Regex("token=[^&]+"), "token=[REDACTED]")
+            .replace(Regex("signerSecret=[^&]+"), "signerSecret=[REDACTED]")
+        debugPrint("trace session link : " + safeLink)
 
         webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(
                 view: WebView?,
                 request: WebResourceRequest?
             ): Boolean {
+                // SECURITY: Validate URLs before loading to prevent navigation to malicious sites
+                val url = request?.url?.toString() ?: ""
+                if (url.isNotEmpty() && !isAllowedUrl(url)) {
+                    debugPrint("Blocked navigation to disallowed URL: " + url)
+                    return true // Block the navigation
+                }
                 return super.shouldOverrideUrlLoading(view, request)
             }
 
@@ -317,6 +338,21 @@ class IgnisignAndroid: WebView, IJSEventListener {
 
     private fun getUrlSessionLink(signatureRequestId: String, signerId: String, signatureSessionToken: String, signerAuthSecret: String, displayOptions: IgnisignJSSignatureSessionsDisplayOptions): String {
         return "${this.ignisignClientSignUrl}/signature-requests/${signatureRequestId}/signers/${signerId}/sign?token=${signatureSessionToken}&signerSecret=${signerAuthSecret}&${displayOptions.convertToQueryString()}"
+    }
+
+    /**
+     * SECURITY: Validates that a URL is allowed to be loaded in the WebView
+     * Only allows navigation to the configured Ignisign client sign URL domain
+     */
+    private fun isAllowedUrl(url: String): Boolean {
+        try {
+            val uri = android.net.Uri.parse(url)
+            val allowedHost = android.net.Uri.parse(ignisignClientSignUrl).host
+            return uri.host == allowedHost || uri.host?.endsWith(".$allowedHost") == true
+        } catch (e: Exception) {
+            debugPrint("Error parsing URL for validation: " + e.message)
+            return false
+        }
     }
 
     private fun jsonToMap(json: String): Map<String, Any> {

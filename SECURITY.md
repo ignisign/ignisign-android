@@ -16,18 +16,18 @@ This document outlines security best practices when integrating the IgniSign And
 - Clear tokens from memory when no longer needed
 
 ### 3. Network Security
-- The SDK now enforces HTTPS by default
-- Cleartext traffic is only allowed for localhost/development domains
-- For production builds, remove development domain exceptions from `network_security_config.xml`
+- The SDK only loads the signing session over HTTPS (`https://sign.ignisign.io`)
+- Cleartext policy (`usesCleartextTraffic` / `networkSecurityConfig`) is owned by your app; the SDK manifest does not set it
+- The example app allows cleartext only for localhost/emulator/ngrok development hosts; remove those exceptions from `network_security_config.xml` for production
 
 ### 4. WebView Security
-- The SDK implements URL validation to prevent navigation to malicious sites
-- JavaScript interfaces are scoped to the IgniSign domain only
+- Top-level WebView navigation is restricted to HTTPS `ignisign.io` hosts; other http(s) links open in the external browser
+- Bridge messages are only accepted from `https://*.ignisign.io` origins, and `OPEN_URL` requests are validated the same way
 - Sensitive parameters are redacted from debug logs
 
 ### 5. Backup and Data Extraction
-- The SDK excludes sensitive data from Android backups by default
-- If you need to include specific data in backups, explicitly configure it in `backup_rules.xml`
+- The SDK does not set `android:allowBackup` (that would conflict with your manifest); configure backup rules in your app
+- The example app disables backup and excludes shared preferences and databases
 
 ## Implementation Checklist
 

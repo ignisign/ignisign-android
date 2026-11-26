@@ -30,8 +30,8 @@ class ActivityListContracts: AppCompatActivity(), IContractAdapter {
         }
 
         // SECURITY: Changed hardcoded HTTP URL to use Config constant
-        // Developers should replace with actual backend API URL
-        val ignisignAPI = IgnisignAPIService("YOUR_BACKEND_API_URL")
+        // Retrofit requires a syntactically valid base URL; set Config.local_ip to your backend
+        val ignisignAPI = IgnisignAPIService("https://${Config.local_ip}/")
 
         ignisignAPI.getContracts { objects ->
             if (objects != null) {

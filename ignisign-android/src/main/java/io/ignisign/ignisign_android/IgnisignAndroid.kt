@@ -59,6 +59,7 @@ data class IgnisignInitParams (
 class IgnisignAndroid: WebView, IJSEventListener {
     private val TAG: String = "IgnisignAndroid"
     private val IGNISIGN_CLIENT_SIGN_URL = "https://sign.ignisign.io"
+    private val IGNISIGN_ROOT_DOMAIN = "ignisign.io"
 
     lateinit var appId: String
     lateinit var env: IgnisignApplicationEnv
@@ -142,11 +143,13 @@ class IgnisignAndroid: WebView, IJSEventListener {
                 view: WebView?,
                 request: WebResourceRequest?
             ): Boolean {
-                // SECURITY: Validate URLs before loading to prevent navigation to malicious sites
+                // SECURITY: Keep top-level navigation on IgniSign domains. Sub-frames
+                // (embedded viewers / identity providers) are not filtered here.
                 val url = request?.url?.toString() ?: ""
-                if (url.isNotEmpty() && !isAllowedUrl(url)) {
-                    debugPrint("Blocked navigation to disallowed URL: " + url)
-                    return true // Block the navigation
+                if (request?.isForMainFrame == true && url.isNotEmpty() && !isAllowedUrl(url)) {
+                    debugPrint("Navigation outside IgniSign domains handed to external browser")
+                    openExternally(url)
+                    return true
                 }
                 return super.shouldOverrideUrlLoading(view, request)
             }
@@ -156,6 +159,7 @@ class IgnisignAndroid: WebView, IJSEventListener {
 
                 loadUrl("javascript:(function() {" +
                         "function receiveMessage(event) {\n" +
+                        "if (!/^https:\\/\\/([a-z0-9-]+\\.)*ignisign\\.io$/.test(event.origin)) { return; }\n" +
                         "AndroidInterface.onMessageReceived(JSON.stringify(event.data));\n" +
                         "}" +
                         "window.addEventListener(\"message\", receiveMessage, false);"+
@@ -224,7 +228,12 @@ class IgnisignAndroid: WebView, IJSEventListener {
                 debugPrint( "trace webview - case open url")
                 val url = data["url"] as? String
                 if (url != null) {
-                    loadUrl(url)
+                    // SECURITY: never load javascript:/file:/foreign URLs requested via postMessage
+                    if (isAllowedUrl(url)) {
+                        post { loadUrl(url) }
+                    } else {
+                        openExternally(url)
+                    }
                 }
             } else if(type == IgnisignBroadcastableActions.SIGNATURE_FINALIZED.name) {
                 debugPrint("trace webview - case finalized")
@@ -347,11 +356,32 @@ class IgnisignAndroid: WebView, IJSEventListener {
     private fun isAllowedUrl(url: String): Boolean {
         try {
             val uri = android.net.Uri.parse(url)
-            val allowedHost = android.net.Uri.parse(ignisignClientSignUrl).host
-            return uri.host == allowedHost || uri.host?.endsWith(".$allowedHost") == true
+            if (uri.scheme?.lowercase() != "https") return false
+            val host = uri.host?.lowercase() ?: return false
+            val signHost = android.net.Uri.parse(ignisignClientSignUrl).host?.lowercase()
+            return host == signHost ||
+                host == IGNISIGN_ROOT_DOMAIN ||
+                host.endsWith(".$IGNISIGN_ROOT_DOMAIN")
         } catch (e: Exception) {
             debugPrint("Error parsing URL for validation: " + e.message)
             return false
+        }
+    }
+
+    /**
+     * Opens an http(s) URL outside the WebView (system browser). Other schemes are dropped.
+     */
+    private fun openExternally(url: String) {
+        try {
+            val uri = android.net.Uri.parse(url)
+            val scheme = uri.scheme?.lowercase()
+            if (scheme != "https" && scheme != "http") return
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+            intent.addCategory(android.content.Intent.CATEGORY_BROWSABLE)
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            debugPrint("Unable to open URL externally: " + e.message)
         }
     }
 

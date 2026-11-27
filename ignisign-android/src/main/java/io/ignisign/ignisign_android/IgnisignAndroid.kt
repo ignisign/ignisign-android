@@ -59,6 +59,7 @@ data class IgnisignInitParams (
 class IgnisignAndroid: WebView, IJSEventListener {
     private val TAG: String = "IgnisignAndroid"
     private val IGNISIGN_CLIENT_SIGN_URL = "https://sign.ignisign.io"
+    private val IGNISIGN_ROOT_DOMAIN = "ignisign.io"
 
     lateinit var appId: String
     lateinit var env: IgnisignApplicationEnv
@@ -77,7 +78,9 @@ class IgnisignAndroid: WebView, IJSEventListener {
     private val IFRAME_MIN_WIDTH  = 200;
     private val IFRAME_MIN_HEIGHT = 400;
 
-    private val debug = true
+    // SECURITY: Debug should be controlled by BuildConfig, not hardcoded
+    // For now set to false to prevent production logging
+    private val debug = false
 
     constructor(context: Context) : super(context) {}
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {}
@@ -100,10 +103,20 @@ class IgnisignAndroid: WebView, IJSEventListener {
     }
 
     fun initSignatureSession(initParams: IgnisignInitParams) {
+        // SECURITY: Configure WebView with security best practices
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
-
-        debugPrint("trace initSignatureSession : params: " + initParams.toString())
+        settings.allowFileAccess = false
+        settings.allowContentAccess = false
+        settings.setGeolocationEnabled(false)
+        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+        
+        // Redact sensitive params from logs
+        val safeParams = initParams.copy(
+            signatureSessionToken = "[REDACTED]",
+            signerAuthSecret = "[REDACTED]"
+        )
+        debugPrint("trace initSignatureSession : params: " + safeParams.toString())
 
         this.idFrame = initParams.idFrame
         this.signerId = initParams.signerId
@@ -120,13 +133,24 @@ class IgnisignAndroid: WebView, IJSEventListener {
 
         val signatureSessionLink = getUrlSessionLink(signatureRequestId, signerId, signatureSessionToken, signerAuthToken, displayOptions)
 
-        debugPrint("trace session link : " + signatureSessionLink)
+        // SECURITY: Redact sensitive parameters from logs
+        val safeLink = signatureSessionLink.replace(Regex("token=[^&]+"), "token=[REDACTED]")
+            .replace(Regex("signerSecret=[^&]+"), "signerSecret=[REDACTED]")
+        debugPrint("trace session link : " + safeLink)
 
         webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(
                 view: WebView?,
                 request: WebResourceRequest?
             ): Boolean {
+                // SECURITY: Keep top-level navigation on IgniSign domains. Sub-frames
+                // (embedded viewers / identity providers) are not filtered here.
+                val url = request?.url?.toString() ?: ""
+                if (request?.isForMainFrame == true && url.isNotEmpty() && !isAllowedUrl(url)) {
+                    debugPrint("Navigation outside IgniSign domains handed to external browser")
+                    openExternally(url)
+                    return true
+                }
                 return super.shouldOverrideUrlLoading(view, request)
             }
 
@@ -135,6 +159,7 @@ class IgnisignAndroid: WebView, IJSEventListener {
 
                 loadUrl("javascript:(function() {" +
                         "function receiveMessage(event) {\n" +
+                        "if (!/^https:\\/\\/([a-z0-9-]+\\.)*ignisign\\.io$/.test(event.origin)) { return; }\n" +
                         "AndroidInterface.onMessageReceived(JSON.stringify(event.data));\n" +
                         "}" +
                         "window.addEventListener(\"message\", receiveMessage, false);"+
@@ -203,7 +228,12 @@ class IgnisignAndroid: WebView, IJSEventListener {
                 debugPrint( "trace webview - case open url")
                 val url = data["url"] as? String
                 if (url != null) {
-                    loadUrl(url)
+                    // SECURITY: never load javascript:/file:/foreign URLs requested via postMessage
+                    if (isAllowedUrl(url)) {
+                        post { loadUrl(url) }
+                    } else {
+                        openExternally(url)
+                    }
                 }
             } else if(type == IgnisignBroadcastableActions.SIGNATURE_FINALIZED.name) {
                 debugPrint("trace webview - case finalized")
@@ -317,6 +347,42 @@ class IgnisignAndroid: WebView, IJSEventListener {
 
     private fun getUrlSessionLink(signatureRequestId: String, signerId: String, signatureSessionToken: String, signerAuthSecret: String, displayOptions: IgnisignJSSignatureSessionsDisplayOptions): String {
         return "${this.ignisignClientSignUrl}/signature-requests/${signatureRequestId}/signers/${signerId}/sign?token=${signatureSessionToken}&signerSecret=${signerAuthSecret}&${displayOptions.convertToQueryString()}"
+    }
+
+    /**
+     * SECURITY: Validates that a URL is allowed to be loaded in the WebView
+     * Only allows navigation to the configured Ignisign client sign URL domain
+     */
+    private fun isAllowedUrl(url: String): Boolean {
+        try {
+            val uri = android.net.Uri.parse(url)
+            if (uri.scheme?.lowercase() != "https") return false
+            val host = uri.host?.lowercase() ?: return false
+            val signHost = android.net.Uri.parse(ignisignClientSignUrl).host?.lowercase()
+            return host == signHost ||
+                host == IGNISIGN_ROOT_DOMAIN ||
+                host.endsWith(".$IGNISIGN_ROOT_DOMAIN")
+        } catch (e: Exception) {
+            debugPrint("Error parsing URL for validation: " + e.message)
+            return false
+        }
+    }
+
+    /**
+     * Opens an http(s) URL outside the WebView (system browser). Other schemes are dropped.
+     */
+    private fun openExternally(url: String) {
+        try {
+            val uri = android.net.Uri.parse(url)
+            val scheme = uri.scheme?.lowercase()
+            if (scheme != "https" && scheme != "http") return
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+            intent.addCategory(android.content.Intent.CATEGORY_BROWSABLE)
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            debugPrint("Unable to open URL externally: " + e.message)
+        }
     }
 
     private fun jsonToMap(json: String): Map<String, Any> {

@@ -40,9 +40,10 @@ class ActivitySignContract: AppCompatActivity(), ISessionCallbacks {
         }
 
         Log.d(TAG, "trace signatureRequestId : " + signatureRequestId)
-        Log.d(TAG, "trace signatureSessionToken : " + signatureSessionToken)
+        // SECURITY: Never log sensitive tokens or secrets in production
+        // Log.d(TAG, "trace signatureSessionToken : " + signatureSessionToken)
         Log.d(TAG, "trace signerId : " + signerId)
-        Log.d(TAG, "trace authSecret : " + authSecret)
+        // Log.d(TAG, "trace authSecret : " + authSecret)
 
         val dimensions = IgnisignSignatureSessionDimensions(
             width = "${getScreenWidthDp(this)-20}",

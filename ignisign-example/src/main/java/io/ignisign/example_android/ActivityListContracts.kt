@@ -29,7 +29,9 @@ class ActivityListContracts: AppCompatActivity(), IContractAdapter {
             swipeRefreshLayout.isRefreshing = false
         }
 
-        val ignisignAPI = IgnisignAPIService("http://192.168.3.62:4242")
+        // SECURITY: Changed hardcoded HTTP URL to use Config constant
+        // Retrofit requires a syntactically valid base URL; set Config.local_ip to your backend
+        val ignisignAPI = IgnisignAPIService("https://${Config.local_ip}/")
 
         ignisignAPI.getContracts { objects ->
             if (objects != null) {
@@ -48,7 +50,8 @@ class ActivityListContracts: AppCompatActivity(), IContractAdapter {
     override fun onSignatureTapped(position: Int) {
         val intentSignature = Intent(this@ActivityListContracts, ActivitySignContract::class.java)
 
-        Log.d(TAG, "trace onSignatureTapped : " + contracts[position].toString())
+        // SECURITY: Avoid logging full contract object which may contain sensitive data
+        Log.d(TAG, "trace onSignatureTapped : position=$position")
 
         intentSignature.putExtra("signatureRequestId", contracts[position].signatureRequestId)
         intentSignature.putExtra("signatureSessionToken", contracts[position].ignisignSignatureToken)

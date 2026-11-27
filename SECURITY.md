@@ -18,7 +18,7 @@ This document outlines security best practices when integrating the IgniSign And
 ### 3. Network Security
 - The SDK only loads the signing session over HTTPS (`https://sign.ignisign.io`)
 - Cleartext policy (`usesCleartextTraffic` / `networkSecurityConfig`) is owned by your app; the SDK manifest does not set it
-- The example app allows cleartext only for localhost/emulator/ngrok development hosts; remove those exceptions from `network_security_config.xml` for production
+- The example app is HTTPS-only in release builds; cleartext to localhost/emulator/ngrok development hosts is allowed only in its debug build (`ignisign-example/src/debug/res/xml/network_security_config.xml`)
 
 ### 4. WebView Security
 - Top-level WebView navigation is restricted to HTTPS `ignisign.io` hosts; other http(s) links open in the external browser
